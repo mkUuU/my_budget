@@ -1,20 +1,28 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faMoneyBillWave, faShoppingCart, faHandHoldingUsd } from '@fortawesome/free-solid-svg-icons';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUsers, faDollarSign, faChartLine } from '@fortawesome/free-solid-svg-icons';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
-
+  const [groups, setGroups] = useState([]);
   const [activityData, setActivityData] = useState([]);
 
   useEffect(() => {
     const fetchData = () => {
+      // In a real application, you would fetch this data from your backend
       const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      const storedGroups = JSON.parse(localStorage.getItem('groups') || '[]');
+      const loggedInUser = JSON.parse(localStorage.getItem('user'));
+      
+      if (loggedInUser && !storedUsers.some(u => u.email === loggedInUser.email)) {
+        storedUsers.push(loggedInUser);
+        localStorage.setItem('users', JSON.stringify(storedUsers));
+      }
 
       setUsers(storedUsers);
-
+      setGroups(storedGroups);
 
       // Generate mock activity data
       const mockActivityData = Array.from({ length: 7 }, (_, i) => {
@@ -30,7 +38,7 @@ const AdminDashboard = () => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 5000); // Check for updates every 5 seconds
+    const interval = setInterval(fetchData, 3000); // Check for updates every 3 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -38,7 +46,7 @@ const AdminDashboard = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <Card>
           <CardHeader>
             <CardTitle>
@@ -53,34 +61,23 @@ const AdminDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle>
-              <FontAwesomeIcon icon={faMoneyBillWave} className="mr-2" />
+              <FontAwesomeIcon icon={faDollarSign} className="mr-2" />
               Total Savings
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold">Ksh 10,000</p>
+            <p className="text-4xl font-bold"> Ksh 10,000</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>
-              <FontAwesomeIcon icon={faShoppingCart} className="mr-2" />
-              Total Spending
+              <FontAwesomeIcon icon={faChartLine} className="mr-2" />
+              Active Groups
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold">Ksh 5,000</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <FontAwesomeIcon icon={faHandHoldingUsd} className="mr-2" />
-              Total Earnings
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">Ksh 15,000</p>
+            <p className="text-4xl font-bold">{groups.length}</p>
           </CardContent>
         </Card>
       </div>
@@ -115,7 +112,6 @@ const AdminDashboard = () => {
                   <th className="text-left p-2">User</th>
                   <th className="text-left p-2">Email</th>
                   <th className="text-left p-2">Joined</th>
-                  <th className="text-left p-2">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -123,8 +119,7 @@ const AdminDashboard = () => {
                   <tr key={index}>
                     <td className="p-2">{user.name}</td>
                     <td className="p-2">{user.email}</td>
-                    <td className="p-2">{new Date(user.joinedAt).toLocaleDateString()}</td>
-                    <td className="p-2">Registered</td>
+                    <td className="p-2">{new Date(user.joinedAt || Date.now()).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>

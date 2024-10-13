@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Download, DollarSign,  ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faDollarSign, faChartLine, faPiggyBank } from '@fortawesome/free-solid-svg-icons';
+import { Download } from "lucide-react";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
-  useAuth();
-  const [balance, setBalance] = useState(0);
-  const [income, setIncome] = useState(0);
-  const [expense, setExpense] = useState(0);
+  const { user } = useAuth();
+  const [balance, setBalance] = useState(5000); // Default value for example
+  const [income, setIncome] = useState(10000); // Default value for example
+  const [expense, setExpense] = useState(5000); // Default value for example
   const [transactions, setTransactions] = useState([]);
   const [newTransaction, setNewTransaction] = useState({ type: 'income', amount: '', description: '' });
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
   useEffect(() => {
-    // Fetch user's financial data
-    // This is a placeholder. In a real app, you'd fetch this from your backend
+    // Simulated API call for user's financial data (replace with real API in production)
     const fetchData = async () => {
-      // Simulating API call
       const data = {
         balance: 5000,
         income: 10000,
@@ -37,7 +37,7 @@ const Dashboard = () => {
     };
     fetchData();
 
-    // Update current date and time every second
+    // Update the current time every second
     const timer = setInterval(() => setCurrentDateTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -47,7 +47,7 @@ const Dashboard = () => {
     const transaction = {
       id: Date.now(),
       ...newTransaction,
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
     };
     setTransactions([transaction, ...transactions]);
     setBalance(prev => newTransaction.type === 'income' ? prev + Number(newTransaction.amount) : prev - Number(newTransaction.amount));
@@ -75,37 +75,47 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-6">Welcome, {user?.name || "User"}!</h1>
       <p className="mb-4">Current Date and Time: {currentDateTime.toLocaleString()}</p>
+
+      {/* Balance, Income, and Expense Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Balance</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">
+              <FontAwesomeIcon icon={faDollarSign} className="mr-2" />
+              Total Balance
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">KSH {balance.toLocaleString()}</div>
+            <div className="text-4xl font-bold">KSH {balance.toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Income</CardTitle>
-            <ArrowUpCircle className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-medium">
+              <FontAwesomeIcon icon={faChartLine} className="mr-2" />
+              Monthly Savings
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">KSH {income.toLocaleString()}</div>
+            <div className="text-4xl font-bold">KSH {income.toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expenses</CardTitle>
-            <ArrowDownCircle className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-sm font-medium">
+              <FontAwesomeIcon icon={faPiggyBank} className="mr-2" />
+              Savings Goal
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">KSH {expense.toLocaleString()}</div>
+            <div className="text-4xl font-bold">KSH {expense.toLocaleString()}</div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Add New Transaction */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Card>
           <CardHeader>
@@ -139,6 +149,8 @@ const Dashboard = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* Financial Overview Bar Chart */}
         <Card>
           <CardHeader>
             <CardTitle>Financial Overview</CardTitle>
@@ -157,6 +169,8 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Transactions */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Transactions</CardTitle>
@@ -174,6 +188,8 @@ const Dashboard = () => {
           </ul>
         </CardContent>
       </Card>
+
+      {/* Download Financial Record */}
       <Button onClick={downloadFinancialRecord} className="mt-4">
         <Download className="mr-2 h-4 w-4" /> Download Financial Record
       </Button>

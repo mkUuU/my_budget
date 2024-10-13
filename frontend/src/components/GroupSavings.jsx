@@ -4,31 +4,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faPlus, faTrash, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 
 const GroupSavings = () => {
   const { user } = useAuth();
-  const [groups, setGroups] = useState([
-    { id: 1, name: 'Family Savings', members: ['John', 'Jane', 'Bob'], creator: 'John' },
-    { id: 2, name: 'Friends Trip', members: ['Alice', 'Charlie', 'David'], creator: 'Alice' },
-  ]);
+  const [groups, setGroups] = useState(() => {
+    const savedGroups = localStorage.getItem('groups');
+    return savedGroups ? JSON.parse(savedGroups) : [
+      { id: 1, name: 'Family Savings', members: ['John', 'Jane', 'Bob'], creator: 'John' },
+    ];
+  });
   const [newGroupName, setNewGroupName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
 
   const createGroup = () => {
     if (newGroupName.trim()) {
       const newGroup = {
-        id: groups.length + 1,
+        id: Date.now(),
         name: newGroupName.trim(),
         members: [user.name],
         creator: user.name
       };
-      setGroups([...groups, newGroup]);
+      const updatedGroups = [...groups, newGroup];
+      setGroups(updatedGroups);
+      localStorage.setItem('groups', JSON.stringify(updatedGroups));
       setNewGroupName('');
     }
   };
 
   const deleteGroup = (groupId) => {
-    setGroups(groups.filter(group => group.id !== groupId));
+    const updatedGroups = groups.filter(group => group.id !== groupId);
+    setGroups(updatedGroups);
+    localStorage.setItem('groups', JSON.stringify(updatedGroups));
+  };
+
+  const inviteToGroup = (groupId) => {
+    if (inviteEmail.trim()) {
+      // In a real application, you would send an invitation email here
+      alert(`Invitation sent to ${inviteEmail} for group ${groupId}`);
+      setInviteEmail('');
+    }
   };
 
   return (
@@ -67,7 +82,7 @@ const GroupSavings = () => {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col space-y-2">
                 <Button variant="outline" asChild>
                   <a href={`/group/${group.id}`}>
                     <FontAwesomeIcon icon={faUsers} className="mr-2" />
@@ -80,6 +95,19 @@ const GroupSavings = () => {
                     Delete Group
                   </Button>
                 )}
+                <div className="flex">
+                  <Input
+                    type="email"
+                    placeholder="Invite email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    className="mr-2"
+                  />
+                  <Button onClick={() => inviteToGroup(group.id)}>
+                    <FontAwesomeIcon icon={faEnvelope} className="mr-2" />
+                    Invite
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
