@@ -1,40 +1,46 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faDollarSign, faChartLine } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faDollarSign, faChartLine, faBell, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
   const [activityData, setActivityData] = useState([]);
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     const fetchData = () => {
-      // In a real application, you would fetch this data from your backend
-      const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const storedGroups = JSON.parse(localStorage.getItem('groups') || '[]');
-      const loggedInUser = JSON.parse(localStorage.getItem('user'));
-      
-      if (loggedInUser && !storedUsers.some(u => u.email === loggedInUser.email)) {
-        storedUsers.push(loggedInUser);
-        localStorage.setItem('users', JSON.stringify(storedUsers));
+      try {
+        const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        const storedGroups = JSON.parse(localStorage.getItem('groups') || '[]');
+        const storedNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+        const loggedInUser = JSON.parse(localStorage.getItem('user'));
+
+        if (loggedInUser && !storedUsers.some(u => u.email === loggedInUser.email)) {
+          storedUsers.push(loggedInUser);
+          localStorage.setItem('users', JSON.stringify(storedUsers));
+        }
+
+        setUsers(storedUsers);
+        setGroups(storedGroups);
+        setNotifications(storedNotifications);
+
+        // Generate mock activity data
+        const mockActivityData = Array.from({ length: 7 }, (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          return {
+            date: date.toLocaleDateString(),
+            transactions: Math.floor(Math.random() * 100),
+            newUsers: Math.floor(Math.random() * 10),
+          };
+        }).reverse();
+        setActivityData(mockActivityData);
+      } catch (error) {
+        console.error('Error fetching data from localStorage:', error);
       }
-
-      setUsers(storedUsers);
-      setGroups(storedGroups);
-
-      // Generate mock activity data
-      const mockActivityData = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        return {
-          date: date.toLocaleDateString(),
-          transactions: Math.floor(Math.random() * 100),
-          newUsers: Math.floor(Math.random() * 10),
-        };
-      }).reverse();
-      setActivityData(mockActivityData);
     };
 
     fetchData();
@@ -42,6 +48,23 @@ const AdminDashboard = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  const calculateTotalSavings = () => {
+    return groups.reduce((total, group) => total + (group.totalSavings || 0), 0);
+  };
+
+  const deleteGroup = (groupIndex) => {
+    const updatedGroups = groups.filter((_, index) => index !== groupIndex);
+    setGroups(updatedGroups);
+    localStorage.setItem('groups', JSON.stringify(updatedGroups));
+
+    const newNotification = {
+      message: `Group deleted at ${new Date().toLocaleString()}`,
+    };
+    const updatedNotifications = [...notifications, newNotification];
+    setNotifications(updatedNotifications);
+    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -66,7 +89,7 @@ const AdminDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold"> Ksh 10,000</p>
+            <p className="text-4xl font-bold">Ksh {calculateTotalSavings()}</p>
           </CardContent>
         </Card>
         <Card>
@@ -81,6 +104,40 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Group Management Section */}
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>Manage Groups</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {groups.length === 0 ? (
+            <p>No groups available.</p>
+          ) : (
+            <div className="space-y-4">
+              {groups.map((group, index) => (
+                <Card key={index}>
+                  <CardContent className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-bold">{group.name}</h3>
+                      <p>Total Savings: {group.totalSavings}</p>
+                    </div>
+                    <button
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => deleteGroup(index)}
+                    >
+                      <FontAwesomeIcon icon={faTrash} className="mr-2" />
+                      Delete Group
+                    </button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Group Activity Chart */}
       <Card className="mb-4">
         <CardHeader>
           <CardTitle>Activity Chart</CardTitle>
@@ -100,31 +157,25 @@ const AdminDashboard = () => {
           </ResponsiveContainer>
         </CardContent>
       </Card>
-      <Card>
+
+      {/* Notifications Section */}
+      <Card className="mb-4">
         <CardHeader>
-          <CardTitle>Recent User Activity</CardTitle>
+          <CardTitle>
+            <FontAwesomeIcon icon={faBell} className="mr-2" />
+            Group Notifications
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th className="text-left p-2">User</th>
-                  <th className="text-left p-2">Email</th>
-                  <th className="text-left p-2">Joined</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user, index) => (
-                  <tr key={index}>
-                    <td className="p-2">{user.name}</td>
-                    <td className="p-2">{user.email}</td>
-                    <td className="p-2">{new Date(user.joinedAt || Date.now()).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {notifications.length === 0 ? (
+            <p>No notifications at the moment.</p>
+          ) : (
+            <ul className="list-disc pl-4">
+              {notifications.map((notification, index) => (
+                <li key={index}>{notification.message}</li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>

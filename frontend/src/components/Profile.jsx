@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,15 +10,14 @@ const Profile = () => {
   const { user, updateProfile } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [status, setStatus] = useState(user?.status || '');
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await updateProfile({ name, email, status });
-      alert('Profile updated successfully!');
+      await updateProfile({ name, email });
+      navigate('/dashboard');
     } catch (error) {
-      console.error(error);
       alert('Failed to update profile. Please try again.');
     }
   };
@@ -48,15 +48,6 @@ const Profile = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-              />
-            </div>
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <Input
-                id="status"
-                type="text"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
               />
             </div>
             <Button type="submit">Update Profile</Button>

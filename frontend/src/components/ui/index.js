@@ -5,3 +5,5 @@ export { default as Input } from './input';
 export { default as Label } from './label';
 export { default as Progress } from './progress';
 export { default as Table } from './table';
+export { default as Select } from './select';
+export { default as Calendar } from './calendar';

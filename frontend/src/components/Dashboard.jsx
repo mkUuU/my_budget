@@ -10,30 +10,28 @@ import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const [balance, setBalance] = useState(5000); // Default value for example
-  const [income, setIncome] = useState(10000); // Default value for example
-  const [expense, setExpense] = useState(5000); // Default value for example
+  const [balance, setBalance] = useState(0);
+  const [income, setIncome] = useState(0);
+  const [expense, setExpense] = useState(0);
+  const [savings, setSavings] = useState(0);  // New state for savings
   const [transactions, setTransactions] = useState([]);
   const [newTransaction, setNewTransaction] = useState({ type: 'income', amount: '', description: '' });
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
   useEffect(() => {
-    // Simulated API call for user's financial data (replace with real API in production)
+    // Replace with real API call for fetching financial data
     const fetchData = async () => {
-      const data = {
-        balance: 5000,
-        income: 10000,
-        expense: 5000,
-        transactions: [
-          { id: 1, type: 'income', amount: 5000, description: 'Salary', date: '2023-06-01' },
-          { id: 2, type: 'expense', amount: 1000, description: 'Rent', date: '2023-06-02' },
-          { id: 3, type: 'expense', amount: 500, description: 'Groceries', date: '2023-06-03' },
-        ]
-      };
-      setBalance(data.balance);
-      setIncome(data.income);
-      setExpense(data.expense);
-      setTransactions(data.transactions);
+      try {
+        const response = await fetch('/api/financial-data'); // Example API endpoint
+        const data = await response.json();
+        setBalance(data.balance);
+        setIncome(data.income);
+        setExpense(data.expense);
+        setSavings(data.savings);  // Set savings value from API
+        setTransactions(data.transactions);
+      } catch (error) {
+        console.error('Failed to fetch financial data', error);
+      }
     };
     fetchData();
 
@@ -50,14 +48,25 @@ const Dashboard = () => {
       date: new Date().toISOString().split('T')[0],
     };
     setTransactions([transaction, ...transactions]);
-    setBalance(prev => newTransaction.type === 'income' ? prev + Number(newTransaction.amount) : prev - Number(newTransaction.amount));
-    setIncome(prev => newTransaction.type === 'income' ? prev + Number(newTransaction.amount) : prev);
-    setExpense(prev => newTransaction.type === 'expense' ? prev + Number(newTransaction.amount) : prev);
+
+    // Update balance and specific type (income, expense, savings)
+    if (newTransaction.type === 'income') {
+      setBalance(prev => prev + Number(newTransaction.amount));
+      setIncome(prev => prev + Number(newTransaction.amount));
+    } else if (newTransaction.type === 'expense') {
+      setBalance(prev => prev - Number(newTransaction.amount));
+      setExpense(prev => prev + Number(newTransaction.amount));
+    } else if (newTransaction.type === 'savings') {
+      setBalance(prev => prev - Number(newTransaction.amount));
+      setSavings(prev => prev + Number(newTransaction.amount));
+    }
+
+    // Reset new transaction form
     setNewTransaction({ type: 'income', amount: '', description: '' });
   };
 
   const downloadFinancialRecord = () => {
-    const data = JSON.stringify({ balance, income, expense, transactions }, null, 2);
+    const data = JSON.stringify({ balance, income, expense, savings, transactions }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -71,6 +80,7 @@ const Dashboard = () => {
   const chartData = [
     { name: 'Income', amount: income },
     { name: 'Expense', amount: expense },
+    { name: 'Savings', amount: savings }, // Added savings to chart data
   ];
 
   return (
@@ -78,8 +88,8 @@ const Dashboard = () => {
       <h1 className="text-3xl font-bold mb-6">Welcome, {user?.name || "User"}!</h1>
       <p className="mb-4">Current Date and Time: {currentDateTime.toLocaleString()}</p>
 
-      {/* Balance, Income, and Expense Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* Balance, Income, Expense, and Savings Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -95,7 +105,7 @@ const Dashboard = () => {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               <FontAwesomeIcon icon={faChartLine} className="mr-2" />
-              Monthly Savings
+              Monthly Income
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -106,11 +116,22 @@ const Dashboard = () => {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               <FontAwesomeIcon icon={faPiggyBank} className="mr-2" />
-              Savings Goal
+              Monthly Expenses
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-bold">KSH {expense.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              <FontAwesomeIcon icon={faPiggyBank} className="mr-2" />
+              Total Savings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-bold">KSH {savings.toLocaleString()}</div>
           </CardContent>
         </Card>
       </div>
@@ -130,6 +151,7 @@ const Dashboard = () => {
               >
                 <option value="income">Income</option>
                 <option value="expense">Expense</option>
+                <option value="savings">Savings</option> {/* New savings option */}
               </select>
               <Input 
                 type="number" 
@@ -180,7 +202,7 @@ const Dashboard = () => {
             {transactions.map(transaction => (
               <li key={transaction.id} className="flex justify-between items-center">
                 <span>{transaction.description}</span>
-                <span className={transaction.type === 'income' ? 'text-green-500' : 'text-red-500'}>
+                <span className={transaction.type === 'income' ? 'text-green-500' : transaction.type === 'savings' ? 'text-blue-500' : 'text-red-500'}>
                   {transaction.type === 'income' ? '+' : '-'} KSH {transaction.amount.toLocaleString()}
                 </span>
               </li>

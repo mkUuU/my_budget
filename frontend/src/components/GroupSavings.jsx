@@ -1,118 +1,103 @@
-import { useState } from 'react';
+import  { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faPlus, faTrash, faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import { Label } from "@/components/ui/label";
 
 const GroupSavings = () => {
-  const { user } = useAuth();
-  const [groups, setGroups] = useState(() => {
-    const savedGroups = localStorage.getItem('groups');
-    return savedGroups ? JSON.parse(savedGroups) : [
-      { id: 1, name: 'Family Savings', members: ['John', 'Jane', 'Bob'], creator: 'John' },
-    ];
-  });
+  const [groups, setGroups] = useState([]);
   const [newGroupName, setNewGroupName] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [newGroupAmount, setNewGroupAmount] = useState('');
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedGroups = JSON.parse(localStorage.getItem('groups') || '[]');
+    setGroups(storedGroups);
+  }, []);
 
   const createGroup = () => {
-    if (newGroupName.trim()) {
+    if (newGroupName && newGroupAmount) {
       const newGroup = {
         id: Date.now(),
-        name: newGroupName.trim(),
+        name: newGroupName,
+        creator: user.name,
         members: [user.name],
-        creator: user.name
+        totalAmountNeeded: parseFloat(newGroupAmount),
+        values: []
       };
       const updatedGroups = [...groups, newGroup];
       setGroups(updatedGroups);
       localStorage.setItem('groups', JSON.stringify(updatedGroups));
       setNewGroupName('');
+      setNewGroupAmount('');
     }
   };
 
-  const deleteGroup = (groupId) => {
-    const updatedGroups = groups.filter(group => group.id !== groupId);
-    setGroups(updatedGroups);
-    localStorage.setItem('groups', JSON.stringify(updatedGroups));
-  };
-
-  const inviteToGroup = (groupId) => {
-    if (inviteEmail.trim()) {
-      // In a real application, you would send an invitation email here
-      alert(`Invitation sent to ${inviteEmail} for group ${groupId}`);
-      setInviteEmail('');
-    }
+  const viewGroup = (groupId) => {
+    navigate(`/group/${groupId}`);
   };
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Group Savings</h1>
-      <div className="mb-4 flex">
-        <Input
-          type="text"
-          placeholder="New group name"
-          value={newGroupName}
-          onChange={(e) => setNewGroupName(e.target.value)}
-          className="mr-2"
-        />
-        <Button onClick={createGroup}>
-          <FontAwesomeIcon icon={faPlus} className="mr-2" />
-          Create Group
-        </Button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {groups.map((group) => (
-          <Card key={group.id}>
-            <CardHeader>
-              <CardTitle>{group.name}</CardTitle>
-              <CardDescription>Created by: {group.creator}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {group.members.map((member, index) => (
-                  <div key={index} className="flex items-center">
-                    <img
-                      src={`https://api.dicebear.com/6.x/initials/svg?seed=${member}`}
-                      alt={member}
-                      className="w-8 h-8 rounded-full mr-2"
-                    />
-                    <span>{member}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-col space-y-2">
-                <Button variant="outline" asChild>
-                  <a href={`/group/${group.id}`}>
-                    <FontAwesomeIcon icon={faUsers} className="mr-2" />
-                    View Group
-                  </a>
-                </Button>
-                {(user.isAdmin || user.name === group.creator) && (
-                  <Button variant="destructive" onClick={() => deleteGroup(group.id)}>
-                    <FontAwesomeIcon icon={faTrash} className="mr-2" />
-                    Delete Group
-                  </Button>
-                )}
-                <div className="flex">
-                  <Input
-                    type="email"
-                    placeholder="Invite email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="mr-2"
-                  />
-                  <Button onClick={() => inviteToGroup(group.id)}>
-                    <FontAwesomeIcon icon={faEnvelope} className="mr-2" />
-                    Invite
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Create New Group</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="groupName">Group Name</Label>
+              <Input
+                id="groupName"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                placeholder="Enter group name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="groupAmount">Total Amount Needed</Label>
+              <Input
+                id="groupAmount"
+                type="number"
+                value={newGroupAmount}
+                onChange={(e) => setNewGroupAmount(e.target.value)}
+                placeholder="Enter total amount needed"
+              />
+            </div>
+            <Button onClick={createGroup}>Create Group</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Groups</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {groups.length === 0 ? (
+            <p>You havent created or joined any groups yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {groups.map((group) => (
+                <Card key={group.id}>
+                  <CardContent className="flex justify-between items-center p-4">
+                    <div>
+                      <h3 className="font-bold">{group.name}</h3>
+                      <p>Created by: {group.creator}</p>
+                      <p>Members: {group.members.length}</p>
+                      <p>Total Amount Needed: Ksh{group.totalAmountNeeded}</p>
+                    </div>
+                    <Button onClick={() => viewGroup(group.id)}>View Group</Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
